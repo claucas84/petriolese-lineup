@@ -28,7 +28,7 @@
   .board{display:grid;gap:16px;grid-template-columns:1fr;width:100%;max-width:960px}
   @media (min-width:860px){.board{grid-template-columns:minmax(300px,520px) 1fr;align-items:start;gap:20px}}
 
-  /* Campo 2/3 (linee visibili) */
+  /* Campo 2/3 */
   .pitch{position:relative;width:100%;max-width:520px;aspect-ratio:2/3;margin:0 auto;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.30);overflow:hidden;border:2px solid rgba(29,78,216,.25)}
   .pitch>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
@@ -49,7 +49,7 @@
 
   .num-badge{
     position:absolute; left:50%; transform:translate(-50%,-100%);
-    top: 0px; /* attaccato al cerchio */
+    top:0px; /* attaccato al cerchio */
     background:var(--club-blue); color:#fff;
     border:2px solid rgba(255,255,255,.7);
     border-radius:999px; padding:2px 7px;
@@ -109,82 +109,162 @@
 </main>
 
 <script>
-  /* Link "pubhtml" */
+  /* Link "pubhtml" (dati pubblicati) */
   const PUBLISHED_META_URL =
-    'https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=254048258&single=true';
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=254048258&single=true';
   const PUBLISHED_DIST_URL =
-    'https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=116187224&single=true';
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=116187224&single=true';
 
   const XI_NUMBERS   = [1,2,5,3,7,6,4,11,10,9,8];
   const BENCH_NUMBERS= [12,13,14,15,16,17,18,19,20];
 
-  /* Coordinate base (percentuali) — separano 1 e 5; quinti più alti dei CM */
- const coords3412 = [
-  [50,91], // 1 GK
+  /* Coordinate (percentuali) — 7 e 11 allineati ai mediani, 2/3 larghi, 5 avanti */
+  const coords3412 = [
+    [50,91], // 1 GK
 
-  // Difesa: 2 e 3 più larghi; 5 più avanti
-  [80,70], // 2 RCB (allargato)
-  [50,73], // 5 CB  (più avanti di prima)
-  [20,70], // 3 LCB (allargato)
+    [80,70], // 2 RCB (allargato)
+    [50,73], // 5 CB  (più avanti)
+    [20,70], // 3 LCB (allargato)
 
-  // Quinti sulla stessa linea dei mediani (y=54)
-  [88,48], // 7 RWB
-  [62,54], // 6 CM-R
-  [38,54], // 4 CM-L
-  [12,48], // 11 LWB
+    [88,54], // 7 RWB (allineato ai CM)
+    [62,54], // 6 CM-R
+    [38,54], // 4 CM-L
+    [12,54], // 11 LWB (allineato ai CM)
 
-  // Trequartista e punte invariati
-  [50,36], // 10 AM
-  [62,16], // 9 ST-R
-  [38,16]  // 8 ST-L
-];
+    [50,36], // 10 AM
+    [62,16], // 9 ST-R
+    [38,16]  // 8 ST-L
+  ];
 
   const el = s => document.querySelector(s);
 
-  /* pubhtml → CSV url */
+  /* ==== FETCH ROBUSTO: CSV + FALLBACK HTML ==== */
+
   function pubToCsv(u){
     try{
       const url = new URL(u);
-      url.pathname = url.pathname.replace(/\/u\/\d+\//,'/').replace(/\/pubhtml(?:\/)?$/,'/pub');
+      url.pathname = url.pathname.replace(/\/u\/\d+\//,'/').replace(/\/pubhtml\/?$/,'/pub');
       url.searchParams.set('output','csv');
       return url.toString();
     }catch(e){ return u; }
   }
+
   function parseCSV(text){
-    const rows=[];let cur='',row=[],inQuotes=false;
-    for(let i=0;i<text.length;i++){
-      const c=text[i],n=text[i+1];
-      if(inQuotes){ if(c==='"'&&n==='"'){cur+='"';i++;} else if(c==='"'){inQuotes=false;} else{cur+=c;} }
-      else{ if(c==='"'){inQuotes=true;} else if(c===','){row.push(cur);cur='';}
-        else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';} else{cur+=c;} }
+    let t = String(text||'').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    while (t.startsWith('\n')) t = t.slice(1);
+    const lines = t.split('\n').filter((ln,i)=> i===0 || ln.trim().length>0);
+    if (!lines.length) return [];
+
+    const rows=[]; let row=[], cur='', inQ=false;
+    const pushCell=()=>{ row.push(cur); cur=''; };
+    const pushRow =()=>{ rows.push(row); row=[]; };
+
+    const s = lines.join('\n');
+    for (let i=0;i<s.length;i++){
+      const c=s[i], n=s[i+1];
+      if (inQ){
+        if (c === '"' && n === '"'){ cur+='"'; i++; }
+        else if (c === '"'){ inQ=false; }
+        else { cur += c; }
+      }else{
+        if (c === '"'){ inQ=true; }
+        else if (c === ','){ pushCell(); }
+        else if (c === '\n'){ pushCell(); pushRow(); }
+        else { cur += c; }
+      }
     }
-    if(cur!==''||row.length){row.push(cur);rows.push(row);}
-    const header=rows.shift().map(h=>h.trim());
-    return rows.filter(r=>r.length).map(r=>Object.fromEntries(header.map((h,i)=>[h,r[i]!==undefined?r[i]:'' ])));
-  }
-  async function fetchPublishedCSV(u){
-    const url=pubToCsv(u);
-    const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status+' per '+url);
-    let txt=await res.text();
-    txt=txt.replace(/\r\n?/g,'\n');
-    return parseCSV(txt);
+    if (cur!=='' || row.length) { pushCell(); pushRow(); }
+    if (!rows.length) return [];
+
+    // header: prima riga non vuota
+    let header = rows.shift();
+    while (header && header.every(h=> String(h||'').trim()==='') && rows.length){
+      header = rows.shift();
+    }
+    if (!header) return [];
+    header = header.map(h=>String(h||'').trim());
+
+    return rows
+      .filter(r => r.some(v => String(v||'').trim()!==''))
+      .map(r => Object.fromEntries(header.map((h,i)=>[h, r[i]!==undefined ? r[i] : '' ])));
   }
 
-  function normalizeMeta(rows){
-    const out={};
-    rows.forEach(r=>{
-      const raw = String(r.Key || r.Chiave || '').trim();
-      const val = String(r.Value || r.Valore || '').trim();
-      if(!raw) return;
-      const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-      out[key]=val;
+  async function fetchPublishedRows(pubhtmlUrl){
+    // 1) prova CSV
+    try{
+      const csvURL = pubToCsv(pubhtmlUrl);
+      const res = await fetch(csvURL, { cache:'no-store' });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const txt = await res.text();
+      const rows = parseCSV(txt);
+      if (rows && rows.length) return rows;
+    }catch(e){ /* passa al fallback */ }
+
+    // 2) fallback: parse tabella pubhtml
+    const htmlRes = await fetch(pubhtmlUrl, { cache:'no-store' });
+    if (!htmlRes.ok) throw new Error('HTTP '+htmlRes.status+' su pubhtml');
+    const html = await htmlRes.text();
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const table = doc.querySelector('table');
+    if (!table) return [];
+
+    const ths = Array.from(table.querySelectorAll('thead tr th, thead tr td'));
+    let header = ths.map(th => th.textContent.trim());
+    if (!header.length){
+      const firstRowTds = Array.from(table.querySelectorAll('tbody tr:first-child td'));
+      header = firstRowTds.map((_,i)=> 'col'+(i+1));
+    }
+
+    const out = [];
+    const trs = Array.from(table.querySelectorAll('tbody tr'));
+    trs.forEach(tr=>{
+      const cells = Array.from(tr.children);
+      if (!cells.length) return;
+      const obj = {};
+      cells.forEach((td,i)=>{ obj[ header[i] || ('col'+(i+1)) ] = td.textContent.trim(); });
+      if (Object.values(obj).some(v => v && v.trim() !== '')) out.push(obj);
     });
     return out;
   }
+
+  async function fetchPublishedCSV(u){
+    return await fetchPublishedRows(u);
+  }
+
+  /* ==== NORMALIZZAZIONE DATI ==== */
+
+  function normalizeMeta(rows){
+    const out={};
+    if (!rows || !rows.length) return out;
+
+    const headerKeys = Object.keys(rows[0]);
+    const norm = k => k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,'');
+    const idxKey = headerKeys.findIndex(k => ['key','chiave','campo','colonna'].includes(norm(k)));
+    const idxVal = headerKeys.findIndex(k => ['value','valore','dato','val'].includes(norm(k)));
+
+    rows.forEach(r=>{
+      const cols = Object.values(r);
+      let raw = '', val = '';
+      if (idxKey >= 0 && idxVal >= 0){
+        raw = String(cols[idxKey]||'').trim();
+        val = String(cols[idxVal]||'').trim();
+      }else{
+        raw = String(cols[0]||'').trim();
+        val = String(cols[1]||'').trim();
+      }
+      if (!raw) return;
+      const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+      out[key] = val;
+    });
+    return out;
+  }
+
   function normalizeDistinta(rows){
     const mapped=rows.map(r=>{
-      const keys=Object.fromEntries(Object.entries(r).map(([k,v])=>[k.toLowerCase().replace(/\s+/g,'').replace(/é/g,'e'),v]));
+      const keys=Object.fromEntries(Object.entries(r).map(([k,v])=>[
+        k.toLowerCase().replace(/\s+/g,'').replace(/é/g,'e'), v
+      ]));
       const num=Number(keys.num||keys.numero||0)||0;
       const name=(keys.nome||keys.giocatore||'').toString();
       const photo=(keys.foto||keys.photo||'').toString();
@@ -192,9 +272,13 @@
     }).filter(x=>x.num>0);
     const byNum=new Map(); mapped.forEach(x=>byNum.set(x.num,x)); return byNum;
   }
-  const surname = full => { const t=String(full||'').trim(); if(!t) return ''; const p=t.split(/\s+/); return p[p.length-1]; };
 
-  /* Anti-sovrapposizione: spinge i pallini se si toccano (soprattutto in verticale) */
+  const surname = full => {
+    const t=String(full||'').trim(); if(!t) return '';
+    const p=t.split(/\s+/); return p[p.length-1];
+  };
+
+  /* Anti-sovrapposizione */
   function distributeNoOverlap(){
     const pitch = el('#pitch');
     const rect = pitch.getBoundingClientRect();
@@ -203,7 +287,7 @@
       const r=node.offsetWidth/2 + 2;
       return {node,xPerc,yPerc,r};
     });
-    for(let step=0; step<32; step++){
+    for(let step=0; step<36; step++){
       let moved=false;
       for(let i=0;i<items.length;i++){
         for(let j=i+1;j<items.length;j++){
@@ -215,7 +299,7 @@
           if(dist<minDist){
             const overlap=minDist-dist || 1;
             const nx=dx/(dist||1), ny=dy/(dist||1);
-            const kx=0.25, ky=0.75; // privilegia separazione verticale
+            const kx=0.25, ky=0.75;
             a.xPerc -= (nx*kx*overlap)/rect.width*100;
             a.yPerc -= (ny*ky*overlap)/rect.height*100;
             b.xPerc += (nx*kx*overlap)/rect.width*100;
@@ -236,10 +320,12 @@
     });
   }
 
+  /* ==== RENDER ==== */
+
   function renderAll(meta, byNum){
-    // Header (avversario da META)
+    // Header
     const opp = meta['avversario'] || 'AVVERSARIO';
-    const when= meta['when'] || '';
+    const when= meta['when'] || meta['data'] || '';
     const logoURL = meta['logourl'] || '';
     el('#clubLogo').src=logoURL||'CLAUDIO LOGO.jpg';
     el('#matchLine').textContent=`PETRIOLESE vs ${opp}`;
@@ -282,25 +368,28 @@
       benchEl.appendChild(card);
     });
 
-    el('#notice').textContent='Dati caricati dai link pubblicati (CSV)';
-
-    // Dopo il render, risolvi eventuali contatti
+    el('#notice').textContent='Dati caricati dai link pubblicati (CSV/pubhtml)';
     requestAnimationFrame(distributeNoOverlap);
   }
 
+  /* ==== INIT ==== */
   (async function init(){
     try{
       const [metaRows,distRows]=await Promise.all([
-        fetchPublishedCSV(PUBLISHED_META_URL),
-        fetchPublishedCSV(PUBLISHED_DIST_URL)
+        fetchPublishedRows(PUBLISHED_META_URL),
+        fetchPublishedRows(PUBLISHED_DIST_URL)
       ]);
+      // Debug non invasivo
+      console.log('META rows:', metaRows?.length, metaRows?.[0]);
+      console.log('DIST rows:', distRows?.length, distRows?.[0]);
+
       const meta=normalizeMeta(metaRows);
       const byNum=normalizeDistinta(distRows);
       renderAll(meta,byNum);
       window.addEventListener('resize', ()=>requestAnimationFrame(distributeNoOverlap));
     }catch(e){
       console.error(e);
-      el('#notice').textContent='Errore nel leggere i CSV pubblicati: '+e.message;
+      el('#notice').textContent='Errore nel leggere i dati pubblicati: '+e.message;
       renderAll({}, new Map());
     }
   })();
