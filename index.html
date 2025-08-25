@@ -11,7 +11,6 @@
     :root{
       --club-red:#e11d48;     /* rosso sociale */
       --club-blue:#1d4ed8;    /* blu sociale */
-      --kit:var(--club-red);  /* non usato per i titolari (ora bicolore) */
       --bench:var(--club-blue);
       --bg:#0b0f0c; --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
     }
@@ -35,23 +34,24 @@
     .pitch{position:relative;width:100%;max-width:520px;aspect-ratio:2/3;margin:0 auto;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.30);overflow:hidden;border:2px solid rgba(29,78,216,.25)}
     .pitch>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-    /* Titolari: pallino bicolore, numero centro, cognome dentro */
+    /* Titolari: pallino bicolore, numero sopra, cognome al centro (7px) */
     .player{
       position:absolute;transform:translate(-50%,-50%);
       width:clamp(60px,11vw,88px);height:clamp(60px,11vw,88px);
       border-radius:999px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.7);
       background:linear-gradient(90deg,var(--club-red) 0 50%,var(--club-blue) 50% 100%);
-      display:grid;place-items:center;
+      display:grid;place-items:center;padding:6px; /* un filo di respiro per il testo */
     }
-    .player .num-center{
-      font-weight:900;color:#fff;font-size:clamp(16px,3.4vw,22px);line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35);
+    .num-badge{
+      position:absolute;left:50%;transform:translate(-50%,-100%);top:-8px;
+      background:var(--club-blue);color:#fff;border:2px solid rgba(255,255,255,.7);
+      border-radius:999px;padding:2px 8px;font-weight:900;font-size:12px;line-height:1
     }
-    .player .surname{
-      position:absolute;left:50%;transform:translateX(-50%);bottom:4px;
-      width:88%;text-align:center;color:#fff;font-weight:800;
-      text-transform:uppercase;line-height:1.05;white-space:normal;word-break:break-word;
-      font-size:6px; /* richiesto */
-      text-shadow:0 1px 1px rgba(0,0,0,.35);
+    .surname-center{
+      color:#fff;font-weight:900;text-transform:uppercase;text-align:center;
+      font-size:7px; line-height:1.05;
+      white-space:normal;word-break:break-word; /* mai ellissi */
+      text-shadow:0 1px 1px rgba(0,0,0,.35)
     }
 
     /* Colonna laterale */
@@ -116,16 +116,18 @@
     const XI_NUMBERS = [1,2,5,3,7,6,4,11,10,9,8];
     const BENCH_NUMBERS = [12,13,14,15,16,17,18,19,20];
 
-    /* Coordinate più distese; #5 più arretrato; meno folla su 1-2-3-5 */
+    /* Coordinate aggiornate:
+       - 7 & 11 allineati a 4 e 6 (y=56)
+       - 2,3,5 e 1 più avanti; 5 (y=84) non si sovrappone con 1 (y=92) */
     const coords3412 = [
-      [50,97], // 1 GK
-      [72,80], // 2 RCB largo
-      [50,90], // 5 CB arretrato
-      [28,80], // 3 LCB largo
-      [88,64], // 7 RWB
+      [50,92], // 1 GK (avanzato, ma dietro al 5)
+      [72,76], // 2 RCB più avanti
+      [50,84], // 5 CB più avanti ma separato dal GK
+      [28,76], // 3 LCB più avanti
+      [88,56], // 7 RWB allineato al CM-R
       [60,56], // 6 CM-R
       [40,56], // 4 CM-L
-      [12,64], // 11 LWB
+      [12,56], // 11 LWB allineato al CM-L
       [50,38], // 10 AM
       [62,18], // 9 ST-R
       [38,18]  // 8 ST-L
@@ -192,15 +194,15 @@
       el('#matchWhen').textContent=match.when;
       if(meta.PitchURL) el('#pitchImg').src=meta.PitchURL;
 
-      // Campo: XI (senza foto, bicolore)
+      // Campo: XI (bicolore, cognome al centro, numero sopra)
       const pitch=el('#pitch'); pitch.querySelectorAll('.player').forEach(n=>n.remove());
       XI_NUMBERS.forEach((num,i)=>{
         const p=byNum.get(num)||{num,name:'',photo:''};
         const [x,y]=coords3412[i]||[50,50];
         const node=document.createElement('div'); node.className='player'; node.style.left=x+'%'; node.style.top=y+'%';
 
-        const numEl=document.createElement('div'); numEl.className='num-center'; numEl.textContent=num; node.appendChild(numEl);
-        const sur=document.createElement('div'); sur.className='surname'; sur.textContent=surname(p.name)||''; node.appendChild(sur);
+        const nb=document.createElement('div'); nb.className='num-badge'; nb.textContent=num; node.appendChild(nb);
+        const sur=document.createElement('div'); sur.className='surname-center'; sur.textContent=(surname(p.name)||''); node.appendChild(sur);
 
         pitch.appendChild(node);
       });
@@ -216,15 +218,11 @@
       ];
       benchItems.forEach(item=>{
         const card=document.createElement('div'); card.className='item';
-
         const nb=document.createElement('div'); nb.className='num-badge'; nb.textContent=item.code; card.appendChild(nb);
-
         const av=document.createElement('div'); av.className='avatar';
         if(item.photo){ const img=document.createElement('img'); img.src=item.photo; img.alt=item.name; img.onerror=()=>img.remove(); av.appendChild(img); }
         card.appendChild(av);
-
         const nm=document.createElement('div'); nm.className='name'; nm.textContent=item.name||''; card.appendChild(nm);
-
         benchEl.appendChild(card);
       });
 
