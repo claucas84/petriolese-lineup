@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Petriolese — Matchday (3-4-1-2) · Static CSV</title>
+  <title>Petriolese — Matchday (3-4-1-2)</title>
   <meta name="theme-color" content="#0b0f0c">
   <link rel="preconnect" href="https://docs.google.com">
   <link rel="dns-prefetch" href="https://docs.google.com">
@@ -11,17 +11,14 @@
     :root{
       --club-red:#e11d48;     /* rosso sociale */
       --club-blue:#1d4ed8;    /* blu sociale */
-      --kit:var(--club-red);  /* colore cerchi titolari */
-      --bench:var(--club-blue); /* colore cerchi panchina */
-      --bg:#0b0f0c;
-      --card:#0f172a;
-      --text:#e5e7eb;
-      --muted:#94a3b8;
+      --kit:var(--club-red);  /* cerchi titolari */
+      --bench:var(--club-blue); /* cerchi panchina */
+      --bg:#0b0f0c; --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
 
-    /* Topbar con piccolo accento blu */
+    /* Topbar */
     .topbar{width:100%;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:12px 16px;border-bottom:2px solid rgba(29,78,216,.35)}
     .brand{display:flex;align-items:center;gap:10px}
     .brand img{width:42px;height:42px;object-fit:contain}
@@ -38,40 +35,26 @@
     .pitch{position:relative;width:100%;max-width:520px;aspect-ratio:2/3;margin:0 auto;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.30);overflow:hidden;border:2px solid rgba(29,78,216,.25)}
     .pitch>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-    /* Giocatori */
-    .player{position:absolute;transform:translate(-50%,-50%);width:clamp(56px,10vw,84px);height:clamp(56px,10vw,84px);border-radius:999px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.7)}
+    /* Titolari */
+    .player{position:absolute;transform:translate(-50%,-50%);width:clamp(60px,11vw,88px);height:clamp(60px,11vw,88px);border-radius:999px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.7)}
     .player img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-    .player .num{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;color:#fff;background:var(--kit);z-index:1;pointer-events:none}
-    .player.has-photo .num{background:rgba(0,0,0,.38)}
-
-    /* Cognome fuori dal cerchio (badge blu) */
-    .player .label{
-      position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
-      font-size:12px;font-weight:800;text-transform:uppercase;
-      background:rgba(29,78,216,.9);color:#fff;border-radius:999px;padding:4px 8px;
-      white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;
-      box-shadow:0 2px 8px rgba(0,0,0,.25)
-    }
+    .num-badge{position:absolute;left:50%;transform:translate(-50%,-100%);top:-8px;background:var(--club-blue);color:#fff;border:2px solid rgba(255,255,255,.7);border-radius:999px;padding:2px 8px;font-weight:900;font-size:12px;line-height:1}
+    .player .label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:12px;font-weight:800;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:4px 8px;max-width:150px;text-align:center;white-space:normal;word-break:break-word;line-height:1.05}
 
     /* Colonna laterale */
     .side{display:grid;gap:16px}
     .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
     .title{font-weight:800;letter-spacing:.2px;font-size:14px;color:#fff}
 
-    /* Panchina in blu */
-    .bench{display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(44px,7vw,56px),1fr));gap:10px;justify-content:center;max-width:min(100%,520px);margin:8px auto 0}
-    .bench .item{display:grid;justify-items:center;gap:6px}
-    .bench .dot{width:clamp(44px,7vw,56px);height:clamp(44px,7vw,56px);border-radius:999px;display:grid;place-items:center;font-weight:900;background:var(--bench);color:#fff;border:2px solid rgba(255,255,255,.45)}
-    .bench .name{font-size:12px;text-align:center;color:var(--muted)}
+    /* Panchina grande con foto */
+    .bench{display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(84px,22vw,140px),1fr));gap:14px;justify-content:center;max-width:min(100%,520px);margin:8px auto 0}
+    .bench .item{display:grid;grid-template-rows:auto auto auto;justify-items:center;gap:6px;position:relative}
+    .bench .num-badge{position:relative;top:0;transform:none;background:var(--club-blue);color:#fff;border:2px solid rgba(255,255,255,.7);border-radius:999px;padding:3px 10px;font-weight:900;font-size:12px;line-height:1}
+    .bench .avatar{width:clamp(64px,18vw,110px);height:clamp(64px,18vw,110px);border-radius:999px;overflow:hidden;background:var(--bench);border:2px solid rgba(255,255,255,.55);box-shadow:0 4px 12px rgba(0,0,0,.25);display:grid;place-items:center}
+    .bench .avatar img{width:100%;height:100%;object-fit:cover}
+    .bench .name{font-size:12px;text-align:center;color:#e5e7eb;white-space:normal;word-break:break-word;line-height:1.05}
 
-    /* Distinta */
-    .dist-card .title{display:flex;align-items:center;justify-content:space-between}
-    .dist-meta{font-size:12px;color:var(--muted)}
-    .distinta{width:100%;border-collapse:collapse;font-size:14px}
-    .distinta th,.distinta td{padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,.12)}
-    .distinta th{color:var(--muted);font-weight:700;text-align:left}
-    .distinta td.num{width:48px;font-weight:800}
-    .notice{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+    .notice{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
   </style>
 </head>
 <body>
@@ -96,21 +79,11 @@
           loading="lazy" decoding="async"/>
       </div>
 
-      <!-- COLONNA: PANCHINA + DISTINTA -->
+      <!-- SOLO PANCHINA (niente Distinta) -->
       <aside class="side">
         <div class="card">
           <div class="title">Panchina (12–20)</div>
           <div class="bench" id="bench"></div>
-        </div>
-        <div class="card dist-card">
-          <div class="title">
-            <span>Distinta (scrivi solo il NOME accanto al NUMERO)</span>
-            <span class="dist-meta" id="distMeta">3-4-1-2 · numeri fissi</span>
-          </div>
-          <table class="distinta" id="distinta">
-            <thead><tr><th>#</th><th>Giocatore</th></tr></thead>
-            <tbody></tbody>
-          </table>
           <div class="notice" id="notice">Carico i dati…</div>
         </div>
       </aside>
@@ -118,7 +91,7 @@
   </main>
 
   <script>
-    /* I TUOI link "pubhtml" */
+    /* Link "pubhtml" */
     const PUBLISHED_META_URL =
       'https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=254048258&single=true';
     const PUBLISHED_DIST_URL =
@@ -130,28 +103,23 @@
     const XI_NUMBERS = [1,2,5,3,7,6,4,11,10,9,8];
     const BENCH_NUMBERS = [12,13,14,15,16,17,18,19,20];
 
-    /* NUOVE coordinate 3-4-1-2 su mezzo campo verticale
-       - più “distese” (coprono meglio l’altezza)
-       - #5 più basso/decentrato dei due braccetti (#2 e #3)
-       - quinti più larghi
-       NB: x=0..100 (sinistra→destra), y=0..100 (alto→basso) */
+    /* Nuove coordinate più distese; #5 più arretrato; meno folla con 1-2-3-5 */
     const coords3412 = [
-      [50,96], // 1 GK
-      [66,82], // 2 RCB
-      [50,86], // 5 CB (più indietro)
-      [34,82], // 3 LCB
-      [86,66], // 7 RWB molto largo
+      [50,97], // 1 GK (quasi sulla linea)
+      [72,80], // 2 RCB più largo/destr
+      [50,90], // 5 CB più arretrato
+      [28,80], // 3 LCB più largo/sin
+      [88,64], // 7 RWB
       [60,56], // 6 CM-R
       [40,56], // 4 CM-L
-      [14,66], // 11 LWB molto largo
-      [50,40], // 10 AM
-      [62,20], // 9 ST-R più alto
-      [38,20]  // 8 ST-L più alto
+      [12,64], // 11 LWB
+      [50,38], // 10 AM
+      [62,18], // 9 ST-R
+      [38,18]  // 8 ST-L
     ];
 
     const el = s => document.querySelector(s);
 
-    /* pubhtml -> CSV */
     function pubToCsv(u){
       try{
         const url = new URL(u);
@@ -197,10 +165,13 @@
       }).filter(x=>x.num>0);
       const byNum=new Map(); mapped.forEach(x=>byNum.set(x.num,x)); return byNum;
     }
-    function surname(full){ const t=String(full||'').trim(); if(!t) return ''; const p=t.split(/\s+/); return p[p.length-1]; }
+    const surname = full => {
+      const t=String(full||'').trim(); if(!t) return '';
+      const p=t.split(/\s+/); return p[p.length-1];
+    };
 
     function renderAll(meta, byNum){
-      // Header (match, logo, colori)
+      // Header
       const match={home:'PETRIOLESE', away:meta.Avversario||'AVVERSARIO', when:meta.When||''};
       const logoURL=meta.LogoURL||'';
       el('#clubLogo').src=logoURL||'CLAUDIO LOGO.jpg';
@@ -216,31 +187,33 @@
         const p=byNum.get(num)||{num,name:'',photo:''};
         const [x,y]=coords3412[i]||[50,50];
         const node=document.createElement('div'); node.className='player'; node.style.left=x+'%'; node.style.top=y+'%';
-        if(p.photo){ const img=document.createElement('img'); img.src=p.photo; img.alt=p.name; img.onerror=()=>{img.remove();node.classList.remove('has-photo')}; node.appendChild(img); node.classList.add('has-photo'); }
-        const numEl=document.createElement('div'); numEl.className='num'; numEl.textContent=num; node.appendChild(numEl);
+
+        if(p.photo){ const img=document.createElement('img'); img.src=p.photo; img.alt=p.name;
+          img.onerror=()=>{img.remove(); node.classList.remove('has-photo')}; node.appendChild(img); node.classList.add('has-photo'); }
+
+        const badge=document.createElement('div'); badge.className='num-badge'; badge.textContent=num; node.appendChild(badge);
+
         const lab=document.createElement('div'); lab.className='label'; lab.textContent=(surname(p.name)||''); node.appendChild(lab);
+
         pitch.appendChild(node);
       });
 
-      // Panchina
+      // Panchina (grande, con foto)
       const benchEl=el('#bench'); benchEl.innerHTML='';
       BENCH_NUMBERS.forEach(num=>{
-        const p=byNum.get(num)||{num,name:''};
+        const p=byNum.get(num)||{num,name:'',photo:''};
         const item=document.createElement('div'); item.className='item';
-        const dot=document.createElement('div'); dot.className='dot'; dot.textContent=num;
-        const nm=document.createElement('div'); nm.className='name'; nm.textContent=p.name||'';
-        item.appendChild(dot); item.appendChild(nm); benchEl.appendChild(item);
-      });
 
-      // Distinta 1..20
-      const tbody=el('#distinta tbody'); tbody.innerHTML='';
-      for(let n=1;n<=20;n++){
-        const p=byNum.get(n)||{num:n,name:''};
-        const tr=document.createElement('tr');
-        const tdN=document.createElement('td'); tdN.className='num'; tdN.textContent=n;
-        const tdNm=document.createElement('td'); tdNm.textContent=p.name||'';
-        tr.appendChild(tdN); tr.appendChild(tdNm); tbody.appendChild(tr);
-      }
+        const nb=document.createElement('div'); nb.className='num-badge'; nb.textContent=num; item.appendChild(nb);
+
+        const av=document.createElement('div'); av.className='avatar';
+        if(p.photo){ const img=document.createElement('img'); img.src=p.photo; img.alt=p.name; img.onerror=()=>img.remove(); av.appendChild(img); }
+        item.appendChild(av);
+
+        const nm=document.createElement('div'); nm.className='name'; nm.textContent=p.name||''; item.appendChild(nm);
+
+        benchEl.appendChild(item);
+      });
     }
 
     (async function init(){
