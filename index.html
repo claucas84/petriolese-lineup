@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Petriolese — Matchday</title>
+  <title>Petriolese — Matchday (3-4-1-2) · Static CSV</title>
   <meta name="theme-color" content="#0b0f0c">
   <link rel="preconnect" href="https://docs.google.com">
   <link rel="dns-prefetch" href="https://docs.google.com">
@@ -38,14 +38,20 @@
     /* Campo */
     .pitch{ position:relative; width:100%; max-width:520px; aspect-ratio:2 / 3; margin:0 auto; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.30); overflow:hidden; }
     .pitch > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-    .pitch .badge{ position:absolute; left:8px; bottom:8px; width:48px; height:48px; object-fit:contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.45)); display:none; }
 
     /* Giocatori — cerchi più grandi */
     .player{position:absolute; transform:translate(-50%,-50%); width:clamp(56px,10vw,80px); height:clamp(56px,10vw,80px); border-radius:999px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.65);}
     .player img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
     .player .num{position:absolute; inset:0; display:grid; place-items:center; font-weight:900; color:#fff; background:var(--kit); z-index:1; pointer-events:none;} /* numero sempre visibile */
     .player.has-photo .num{background:rgba(0,0,0,.38)} /* con foto: overlay scuro */
-    .player .tag{position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:.2px; text-align:center; padding:4px 4px; font-size:clamp(9px,1.8vw,12px); line-height:1; z-index:2; pointer-events:none;}
+    .player .tag{
+      position:absolute; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,.55); color:#fff; font-weight:800;
+      text-transform:uppercase; letter-spacing:.2px; text-align:center;
+      padding:4px 4px; font-size:clamp(9px,1.8vw,12px); line-height:1;
+      z-index:2; pointer-events:none;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* ellipsis di sicurezza */
+    }
     .player .label{position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%); font-size:12px; color:var(--muted); white-space:nowrap; text-align:center}
 
     /* Colonna laterale */
@@ -89,8 +95,6 @@
           src="https://tse3.mm.bing.net/th/id/OIP.xR8peX5FCoXBMSXQkppsfwAAAA?pid=Api"
           alt="Mezzo campo da calcio, vista dall'alto"
           loading="lazy" decoding="async"/>
-        <!-- Badge logo sul campo -->
-        <img id="logoBadge" class="badge" src="" alt="Logo Petriolese" />
       </div>
 
       <!-- COLONNA: PANCHINA + DISTINTA -->
@@ -208,25 +212,28 @@
       return parts[parts.length-1];
     }
 
+    // Riduce font-size del cognome finché entra nel nastrino; ellipsis se non basta
+    function fitTag(elTag, minPx=8){
+      let size = parseFloat(getComputedStyle(elTag).fontSize) || 12;
+      const min = minPx;
+      // tenta 20 step max per evitare loop lunghi
+      for (let i=0; i<20 && elTag.scrollWidth > elTag.clientWidth && size > min; i++){
+        size -= 0.5;
+        elTag.style.fontSize = size + 'px';
+      }
+      // ellipsis è già attivo via CSS, quindi se ancora non entra, verrà troncato
+    }
+
     function renderAll(meta, byNum){
       // Header (match, logo, colori)
       const match = { home:'PETRIOLESE', away: meta.Avversario||'AVVERSARIO', when: meta.When||'' };
       const logoURL = meta.LogoURL || ''; // se c'è in Meta, usiamolo
-      // Topbar logo: se Meta.LogoURL non c'è, usa il file locale "CLAUDIO LOGO.jpg"
       el('#clubLogo').src = logoURL || 'CLAUDIO LOGO.jpg';
       el('#matchLine').textContent = `${match.home} vs ${match.away}`;
       el('#matchWhen').textContent = match.when;
       if (meta.KitColor)   document.documentElement.style.setProperty('--kit',   meta.KitColor);
       if (meta.BenchColor) document.documentElement.style.setProperty('--bench', meta.BenchColor);
       if (meta.PitchURL)   el('#pitchImg').src = meta.PitchURL;
-
-      // Badge logo sul campo
-      const badge = el('#logoBadge');
-      const badgeSrc = logoURL || 'CLAUDIO LOGO.jpg';
-      // Provalo: se carica, mostra il badge; se errore, nascondilo
-      badge.src = badgeSrc;
-      badge.style.display = 'block';
-      badge.onerror = () => { badge.style.display = 'none'; };
 
       // Campo: XI fissi per numero
       const pitch = el('#pitch'); pitch.querySelectorAll('.player').forEach(n=>n.remove());
@@ -243,6 +250,8 @@
         const tag=document.createElement('div'); tag.className='tag'; tag.textContent=surname(p.name); node.appendChild(tag);
         const lab=document.createElement('div'); lab.className='label'; lab.textContent=`${num} · ${p.name||''}`; node.appendChild(lab);
         pitch.appendChild(node);
+        // adatta il cognome al nastrino
+        requestAnimationFrame(()=>fitTag(tag));
       });
 
       // Panchina: 12..20
