@@ -1,83 +1,78 @@
-from zipfile import ZipFile, ZIP_DEFLATED
-
-PUBLISHED_META_URL = "https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=254048258&single=true"
-PUBLISHED_DIST_URL = "https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=116187224&single=true"
-
-index_html = f"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Petriolese — Matchday (3-4-1-2) · Static CSV</title>
+  <title>Petriolese — Matchday</title>
   <meta name="theme-color" content="#0b0f0c">
   <link rel="preconnect" href="https://docs.google.com">
   <link rel="dns-prefetch" href="https://docs.google.com">
   <style>
-    :root{{
+    :root{
       --kit:#e11d48;   /* colore cerchi titolari (maglia) */
       --bench:#6b7280; /* colore cerchi panchina */
       --bg:#0b0f0c;    /* sfondo pagina */
       --card:#0f172a;  /* pannelli laterali */
       --text:#e5e7eb;  /* testo */
       --muted:#94a3b8; /* testo attenuato */
-    }}
-    *{{box-sizing:border-box}}
-    body{{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; background:var(--bg); color:var(--text);}}
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; background:var(--bg); color:var(--text);}
 
     /* Topbar */
-    .topbar{{width:100%; display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; padding:12px 16px;}}
-    .brand{{display:flex; align-items:center; gap:10px}}
-    .brand img{{width:42px; height:42px; object-fit:contain}}
-    .brand .club{{font-weight:900; letter-spacing:.3px}}
-    .matchline{{font-weight:800; text-transform:uppercase; text-align:right}}
-    .subline{{font-size:12px; color:var(--muted)}}
-    @media (max-width:520px){{ .matchline{{font-size:14px}} }}
+    .topbar{width:100%; display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; padding:12px 16px;}
+    .brand{display:flex; align-items:center; gap:10px}
+    .brand img{width:42px; height:42px; object-fit:contain}
+    .brand .club{font-weight:900; letter-spacing:.3px}
+    .matchline{font-weight:800; text-transform:uppercase; text-align:right}
+    .subline{font-size:12px; color:var(--muted)}
+    @media (max-width:520px){ .matchline{font-size:14px} }
 
     /* Wrapper */
-    .wrap{{min-height:100svh; display:grid; place-items:start center; padding:8px 16px calc(16px + env(safe-area-inset-bottom));}}
+    .wrap{min-height:100svh; display:grid; place-items:start center; padding:8px 16px calc(16px + env(safe-area-inset-bottom));}
 
     /* Layout: mobile-first; desktop a due colonne */
-    .board{{display:grid; gap:16px; grid-template-columns:1fr; width:100%; max-width:960px}}
-    @media (min-width:860px){{ .board{{ grid-template-columns:minmax(300px,520px) 1fr; align-items:start; gap:20px }} }}
+    .board{display:grid; gap:16px; grid-template-columns:1fr; width:100%; max-width:960px}
+    @media (min-width:860px){ .board{ grid-template-columns:minmax(300px,520px) 1fr; align-items:start; gap:20px } }
 
     /* Campo */
-    .pitch{{ position:relative; width:100%; max-width:520px; aspect-ratio:2 / 3; margin:0 auto; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.30); overflow:hidden; }}
-    .pitch > img{{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }}
-    .pitch .badge{{ position:absolute; left:8px; bottom:8px; width:48px; height:48px; object-fit:contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.45)); display:none; }}
+    .pitch{ position:relative; width:100%; max-width:520px; aspect-ratio:2 / 3; margin:0 auto; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.30); overflow:hidden; }
+    .pitch > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .pitch .badge{ position:absolute; left:8px; bottom:8px; width:48px; height:48px; object-fit:contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.45)); display:none; }
 
     /* Giocatori — cerchi più grandi */
-    .player{{position:absolute; transform:translate(-50%,-50%); width:clamp(56px,10vw,80px); height:clamp(56px,10vw,80px); border-radius:999px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.65);}}
-    .player img{{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}}
-    .player .num{{position:absolute; inset:0; display:grid; place-items:center; font-weight:900; color:#fff; background:var(--kit); z-index:1; pointer-events:none;}} /* numero sempre visibile */
-    .player.has-photo .num{{background:rgba(0,0,0,.38)}} /* con foto: overlay scuro */
-    .player .tag{{position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:.2px; text-align:center; padding:4px 4px; font-size:clamp(9px,1.8vw,12px); line-height:1; z-index:2; pointer-events:none;}}
-    .player .label{{position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%); font-size:12px; color:var(--muted); white-space:nowrap; text-align:center}}
+    .player{position:absolute; transform:translate(-50%,-50%); width:clamp(56px,10vw,80px); height:clamp(56px,10vw,80px); border-radius:999px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.65);}
+    .player img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+    .player .num{position:absolute; inset:0; display:grid; place-items:center; font-weight:900; color:#fff; background:var(--kit); z-index:1; pointer-events:none;} /* numero sempre visibile */
+    .player.has-photo .num{background:rgba(0,0,0,.38)} /* con foto: overlay scuro */
+    .player .tag{position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:.2px; text-align:center; padding:4px 4px; font-size:clamp(9px,1.8vw,12px); line-height:1; z-index:2; pointer-events:none;}
+    .player .label{position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%); font-size:12px; color:var(--muted); white-space:nowrap; text-align:center}
 
     /* Colonna laterale */
-    .side{{display:grid; gap:16px}}
-    .card{{background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px}}
-    .title{{font-weight:800; letter-spacing:.2px; font-size:14px; color:#fff}}
+    .side{display:grid; gap:16px}
+    .card{background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px}
+    .title{font-weight:800; letter-spacing:.2px; font-size:14px; color:#fff}
 
     /* Panchina */
-    .bench{{display:grid; grid-template-columns:repeat(auto-fit,minmax(clamp(44px,7vw,56px),1fr)); gap:10px; justify-content:center; max-width:min(100%,520px); margin:8px auto 0}}
-    .bench .item{{display:grid; justify-items:center; gap:6px}}
-    .bench .dot{{width:clamp(44px,7vw,56px); height:clamp(44px,7vw,56px); border-radius:999px; display:grid; place-items:center; font-weight:900; background:var(--bench); color:#fff; border:2px solid rgba(255,255,255,.45)}}
-    .bench .name{{font-size:12px; text-align:center; color:var(--muted)}}
+    .bench{display:grid; grid-template-columns:repeat(auto-fit,minmax(clamp(44px,7vw,56px),1fr)); gap:10px; justify-content:center; max-width:min(100%,520px); margin:8px auto 0}
+    .bench .item{display:grid; justify-items:center; gap:6px}
+    .bench .dot{width:clamp(44px,7vw,56px); height:clamp(44px,7vw,56px); border-radius:999px; display:grid; place-items:center; font-weight:900; background:var(--bench); color:#fff; border:2px solid rgba(255,255,255,.45)}
+    .bench .name{font-size:12px; text-align:center; color:var(--muted)}
 
     /* Distinta */
-    .dist-card .title{{display:flex; align-items:center; justify-content:space-between}}
-    .dist-meta{{font-size:12px; color:var(--muted)}}
-    .distinta{{width:100%; border-collapse:collapse; font-size:14px}}
-    .distinta th, .distinta td{{padding:8px 10px; border-bottom:1px dashed rgba(255,255,255,.12)}}
-    .distinta th{{color:var(--muted); font-weight:700; text-align:left}}
-    .distinta td.num{{width:48px; font-weight:800}}
-    .notice{{font-size:12px; color:var(--muted); text-align:center; margin-top:8px}}
+    .dist-card .title{display:flex; align-items:center; justify-content:space-between}
+    .dist-meta{font-size:12px; color:var(--muted)}
+    .distinta{width:100%; border-collapse:collapse; font-size:14px}
+    .distinta th, .distinta td{padding:8px 10px; border-bottom:1px dashed rgba(255,255,255,.12)}
+    .distinta th{color:var(--muted); font-weight:700; text-align:left}
+    .distinta td.num{width:48px; font-weight:800}
+    .notice{font-size:12px; color:var(--muted); text-align:center; margin-top:8px}
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <img id="clubLogo" src="img/logo-petriolese.png" alt="Logo Petriolese" onerror="this.style.display='none'"/>
+      <img id="clubLogo" src="CLAUDIO LOGO.jpg" alt="Logo Petriolese" onerror="this.style.display='none'"/>
       <div class="club">Petriolese Calcio</div>
     </div>
     <div>
@@ -120,9 +115,11 @@ index_html = f"""<!DOCTYPE html>
   </main>
 
   <script>
-    /* Link "pubhtml" */
-    const PUBLISHED_META_URL = '{PUBLISHED_META_URL}';
-    const PUBLISHED_DIST_URL = '{PUBLISHED_DIST_URL}';
+    /* I TUOI link "pubhtml" */
+    const PUBLISHED_META_URL =
+      'https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=254048258&single=true';
+    const PUBLISHED_DIST_URL =
+      'https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSpJqXmoJaIznEo_EGHCfUxyYVWWKJCGULM9FbnI14hLhGpsjt3oMHT5ahJwEmJ4w/pubhtml?gid=116187224&single=true';
 
     /* Numeri fissi per 3-4-1-2 (ordine posizionale):
        GK, RCB,  CB,  LCB, RWB, CM-R, CM-L, LWB,  AM,  ST1, ST2
@@ -162,7 +159,7 @@ index_html = f"""<!DOCTYPE html>
         } else {
           if (c==='"'){ inQuotes=true; }
           else if (c===','){ row.push(cur); cur=''; }
-          else if (c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+          else if (c=='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
           else { cur+=c; }
         }
       }
@@ -214,8 +211,9 @@ index_html = f"""<!DOCTYPE html>
     function renderAll(meta, byNum){
       // Header (match, logo, colori)
       const match = { home:'PETRIOLESE', away: meta.Avversario||'AVVERSARIO', when: meta.When||'' };
-      const logoURL = meta.LogoURL || '';
-      el('#clubLogo').src = logoURL || 'img/logo-petriolese.png';
+      const logoURL = meta.LogoURL || ''; // se c'è in Meta, usiamolo
+      // Topbar logo: se Meta.LogoURL non c'è, usa il file locale "CLAUDIO LOGO.jpg"
+      el('#clubLogo').src = logoURL || 'CLAUDIO LOGO.jpg';
       el('#matchLine').textContent = `${match.home} vs ${match.away}`;
       el('#matchWhen').textContent = match.when;
       if (meta.KitColor)   document.documentElement.style.setProperty('--kit',   meta.KitColor);
@@ -224,13 +222,11 @@ index_html = f"""<!DOCTYPE html>
 
       // Badge logo sul campo
       const badge = el('#logoBadge');
-      if (logoURL){
-        badge.src = logoURL;
-        badge.style.display = 'block';
-        badge.onerror = () => { badge.style.display = 'none'; };
-      } else {
-        badge.style.display = 'none';
-      }
+      const badgeSrc = logoURL || 'CLAUDIO LOGO.jpg';
+      // Provalo: se carica, mostra il badge; se errore, nascondilo
+      badge.src = badgeSrc;
+      badge.style.display = 'block';
+      badge.onerror = () => { badge.style.display = 'none'; };
 
       // Campo: XI fissi per numero
       const pitch = el('#pitch'); pitch.querySelectorAll('.player').forEach(n=>n.remove());
@@ -291,42 +287,3 @@ index_html = f"""<!DOCTYPE html>
   </script>
 </body>
 </html>
-"""
-
-readme = """# Petriolese — Matchday (GitHub Pages)
-
-Questo è un pacchetto pronto per **GitHub Pages**.
-
-## Come pubblicare
-1. Crea un repository su GitHub (es. `petriolese-lineup`).
-2. Carica i file di questo zip nella **root** del repo (index.html, .nojekyll, img/logo-petriolese.png, README.md).
-3. In **Settings → Pages**: 
-   - **Build and deployment → Source**: *Deploy from a branch*
-   - **Branch**: *main* / **Folder**: */root*
-   - Salva → GitHub genererà l’URL: `https://<utente>.github.io/<repo>/`
-
-## Configura i dati
-- Apri `index.html` e verifica le due costanti con i **tuoi link pubhtml** di Google Sheets:
-  - `PUBLISHED_META_URL`
-  - `PUBLISHED_DIST_URL`
-- La pagina converte automaticamente in CSV e legge le schede pubblicate.
-
-## Aggiorna la formazione
-- Modifica **Meta** e **Distinta** nel tuo Google Sheet.
-- Riapri la pagina: i dati sono ricaricati a ogni apertura (nessun redeploy necessario).
-
-## Foto
-- In **Distinta → Foto** puoi usare:
-  - link Drive diretto `https://drive.google.com/uc?export=view&id=ID_FILE`
-  - **oppure** immagini nel repo (`players/01-rossi.webp`) referenziate come `players/01-rossi.webp`.
-
-"""
-
-zip_path = "/mnt/data/petriolese_github_pages.zip"
-with ZipFile(zip_path, "w", compression=ZIP_DEFLATED) as zf:
-    zf.writestr("index.html", index_html)
-    zf.writestr("README.md", readme)
-    zf.writestr(".nojekyll", "")  # ensures Jekyll doesn't process
-    zf.writestr("img/logo-petriolese.png", b"")  # placeholder (replace with your real logo)
-
-zip_path
