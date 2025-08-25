@@ -28,36 +28,40 @@
   .board{display:grid;gap:16px;grid-template-columns:1fr;width:100%;max-width:960px}
   @media (min-width:860px){.board{grid-template-columns:minmax(300px,520px) 1fr;align-items:start;gap:20px}}
 
-  /* Campo 2/3 */
+  /* Campo 2/3 (linee visibili) */
   .pitch{position:relative;width:100%;max-width:520px;aspect-ratio:2/3;margin:0 auto;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.30);overflow:hidden;border:2px solid rgba(29,78,216,.25)}
   .pitch>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* Titolari */
+  /* Titolari: cerchio più grande, numero vicino, cognome sotto */
   .player{
-    position:absolute;transform:translate(-50%,-50%);
-    width:clamp(54px,10vw,84px);height:clamp(54px,10vw,84px);
-    overflow:visible; /* per far vedere il badge numero */
+    position:absolute; transform:translate(-50%,-50%);
+    width:clamp(60px,11.5vw,96px); height:clamp(60px,11.5vw,96px);
+    overflow:visible;
   }
   .player .ball{
-    width:100%;height:100%;border-radius:999px;overflow:hidden;
-    border:2px solid rgba(255,255,255,.7);box-shadow:0 6px 16px rgba(0,0,0,.35);
+    width:100%; height:100%; border-radius:999px; overflow:hidden;
+    border:2px solid rgba(255,255,255,.7);
+    box-shadow:0 6px 16px rgba(0,0,0,.35);
     background:linear-gradient(90deg,var(--club-red) 0 50%,var(--club-blue) 50% 100%);
-    display:grid;place-items:center;
-    padding:6px;
+    display:grid; place-items:center; padding:4px;
   }
   .player .ball img{width:100%;height:100%;object-fit:cover;display:block}
+
   .num-badge{
-    position:absolute;left:50%;transform:translate(-50%,-100%);top:-8px;
-    background:var(--club-blue);color:#fff;border:2px solid rgba(255,255,255,.7);
-    border-radius:999px;padding:2px 8px;font-weight:900;font-size:12px;line-height:1;z-index:2;
+    position:absolute; left:50%; transform:translate(-50%,-100%);
+    top:-2px; /* attaccato al cerchio */
+    background:var(--club-blue); color:#fff;
+    border:2px solid rgba(255,255,255,.7);
+    border-radius:999px; padding:2px 7px;
+    font-weight:900; font-size:12px; line-height:1; z-index:2;
   }
-  /* NOME dentro al pallino */
-  .name-in{
-    color:#fff;font-weight:900;text-transform:uppercase;text-align:center;
-    font-size:9px;line-height:1.05; /* puoi portarla a 7–10px */
-    white-space:normal;word-break:break-word; /* niente ellissi */
-    text-shadow:0 1px 1px rgba(0,0,0,.35);
-    pointer-events:none;
+  .name-below{
+    position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%);
+    background:var(--club-blue); color:#fff; border:2px solid rgba(255,255,255,.7);
+    border-radius:999px; padding:3px 8px;
+    font-weight:900; font-size:12px; line-height:1;
+    white-space:nowrap; overflow:visible; max-width:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
   }
 
   /* Colonna laterale */
@@ -114,12 +118,12 @@
   const XI_NUMBERS   = [1,2,5,3,7,6,4,11,10,9,8];
   const BENCH_NUMBERS= [12,13,14,15,16,17,18,19,20];
 
-  /* Base coords (percentuale) — già distese e con 1 e 5 separati */
+  /* Coordinate base (percentuali) — separano 1 e 5; quinti più alti dei CM */
   const coords3412 = [
-    [50,96], // 1 GK
-    [72,72], // 2 RCB
-    [50,80], // 5 CB
-    [28,72], // 3 LCB
+    [50,92], // 1 GK
+    [72,70], // 2 RCB
+    [50,74], // 5 CB
+    [28,70], // 3 LCB
     [88,60], // 7 RWB
     [60,54], // 6 CM-R
     [40,54], // 4 CM-L
@@ -131,6 +135,7 @@
 
   const el = s => document.querySelector(s);
 
+  /* pubhtml → CSV url */
   function pubToCsv(u){
     try{
       const url = new URL(u);
@@ -183,14 +188,6 @@
   }
   const surname = full => { const t=String(full||'').trim(); if(!t) return ''; const p=t.split(/\s+/); return p[p.length-1]; };
 
-  /* Adatta il testo dentro al pallino: scala fino a farlo stare (max 2 righe) */
-  function fitLabel(el, minPx=6){
-    let size=parseFloat(getComputedStyle(el).fontSize)||9;
-    for(let i=0;i<30 && el.scrollHeight>el.clientHeight && size>minPx; i++){
-      size-=0.5; el.style.fontSize=size+'px';
-    }
-  }
-
   /* Anti-sovrapposizione: spinge i pallini se si toccano (soprattutto in verticale) */
   function distributeNoOverlap(){
     const pitch = el('#pitch');
@@ -212,8 +209,7 @@
           if(dist<minDist){
             const overlap=minDist-dist || 1;
             const nx=dx/(dist||1), ny=dy/(dist||1);
-            // privilegia separazione verticale
-            const kx=0.25, ky=0.75;
+            const kx=0.25, ky=0.75; // privilegia separazione verticale
             a.xPerc -= (nx*kx*overlap)/rect.width*100;
             a.yPerc -= (ny*ky*overlap)/rect.height*100;
             b.xPerc += (nx*kx*overlap)/rect.width*100;
@@ -235,7 +231,7 @@
   }
 
   function renderAll(meta, byNum){
-    // Header
+    // Header (avversario da META)
     const opp = meta['avversario'] || 'AVVERSARIO';
     const when= meta['when'] || '';
     const logoURL = meta['logourl'] || '';
@@ -244,25 +240,24 @@
     el('#matchWhen').textContent=when;
     if(meta['pitchurl']) el('#pitchImg').src=meta['pitchurl'];
 
-    // Campo
+    // Campo: XI
     const pitch=el('#pitch'); pitch.querySelectorAll('.player').forEach(n=>n.remove());
     XI_NUMBERS.forEach((num,i)=>{
       const p=byNum.get(num)||{num,name:'',photo:''};
       const [x,y]=coords3412[i]||[50,50];
-      const node=document.createElement('div'); node.className='player'; node.style.left=x+'%'; node.style.top=y+'%';
+
+      const node=document.createElement('div');
+      node.className='player'; node.style.left=x+'%'; node.style.top=y+'%';
 
       const ball=document.createElement('div'); ball.className='ball';
       if(p.photo){ const img=document.createElement('img'); img.src=p.photo; img.alt=p.name; img.onerror=()=>img.remove(); ball.appendChild(img); }
-      const label=document.createElement('div'); label.className='name-in';
-      const labelText = surname(p.name);  /* ← usa cognome. Metti p.name per nome completo */
-      label.textContent=labelText;
-      ball.appendChild(label);
       node.appendChild(ball);
 
       const nb=document.createElement('div'); nb.className='num-badge'; nb.textContent=num; node.appendChild(nb);
 
+      const label=document.createElement('div'); label.className='name-below'; label.textContent=surname(p.name)||''; node.appendChild(label);
+
       pitch.appendChild(node);
-      requestAnimationFrame(()=>fitLabel(label)); // scala se serve
     });
 
     // Panchina (+ ALL)
@@ -296,7 +291,6 @@
       const meta=normalizeMeta(metaRows);
       const byNum=normalizeDistinta(distRows);
       renderAll(meta,byNum);
-      // ricalcola su resize (mobile rotazione ecc.)
       window.addEventListener('resize', ()=>requestAnimationFrame(distributeNoOverlap));
     }catch(e){
       console.error(e);
