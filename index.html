@@ -177,7 +177,7 @@
       const raw = String(r.Key || r.Chiave || '').trim();
       const val = String(r.Value || r.Valore || '').trim();
       if(!raw) return;
-      const key = raw.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+      const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
       out[key]=val;
     });
     return out;
